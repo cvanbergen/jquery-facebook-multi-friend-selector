@@ -28,6 +28,7 @@
             max_selected: -1,
             max_selected_message: "{0} of {1} selected",
 			pre_selected_friends: [],
+			include_me: false,    // true includes self into the friendlist
 			exclude_friends: [],
 			friend_fields: "id,name",
 			sorter: function(a, b) {
@@ -73,32 +74,41 @@
 			preselected_friends_graph = arrayToObjectGraph(settings.pre_selected_friends),
 			excluded_friends_graph = arrayToObjectGraph(settings.exclude_friends),
             all_friends;
-            
-        FB.api('/me/friends?fields=' + settings.friend_fields, function(response) {
-            var sortedFriendData = response.data.sort(settings.sorter),
-                preselectedFriends = {},
-                buffer = [],
-			    selectedClass = "";
-            
-            $.each(sortedFriendData, function(i, friend) {
-				if(! (friend.id in excluded_friends_graph)) {
-					selectedClass = (friend.id in preselected_friends_graph) ? "selected" : "";
-	                buffer.push("<div class='jfmfs-friend " + selectedClass + " ' id='" + friend.id  +"'><img/><div class='friend-name'>" + friend.name + "</div></div>");            
-				}
-            });
-            friend_container.append(buffer.join(""));
-            
-            uninitializedImagefriendElements = $(".jfmfs-friend", elem);            
-            uninitializedImagefriendElements.bind('inview', function (event, visible) {
-                if( $(this).attr('src') === undefined) {
-                    $("img", $(this)).attr("src", "//graph.facebook.com/" + this.id + "/picture");
-                }
-                $(this).unbind('inview');
-            });
 
-            init();
-        });
-        
+
+            FB.api('/me', function(resp) {
+		var meJSONObj;
+		meJSONObj = resp;
+	
+	        FB.api('/me/friends?fields=' + settings.friend_fields, function(response) {
+                    if (settings.include_me) {	// if option to include self in list is TRUE we inject friend array with ourself... some kind of life metaphor...
+	                response.data.push(meJSONObj);
+	            }
+	        
+	            var sortedFriendData = response.data.sort(settings.sorter),
+	                preselectedFriends = {},
+	                buffer = [],
+				    selectedClass = "";
+	            
+	            $.each(sortedFriendData, function(i, friend) {
+					if(! (friend.id in excluded_friends_graph)) {
+						selectedClass = (friend.id in preselected_friends_graph) ? "selected" : "";
+		                buffer.push("<div class='jfmfs-friend " + selectedClass + " ' id='" + friend.id  +"'><img/><div class='friend-name'>" + friend.name + "</div></div>");            
+					}
+	            });
+	            friend_container.append(buffer.join(""));
+	            
+	            uninitializedImagefriendElements = $(".jfmfs-friend", elem);            
+	            uninitializedImagefriendElements.bind('inview', function (event, visible) {
+	                if( $(this).attr('src') === undefined) {
+	                    $("img", $(this)).attr("src", "//graph.facebook.com/" + this.id + "/picture");
+	                }
+	                $(this).unbind('inview');
+	            });
+	
+	            init();
+	        });
+	    });
         
         // ----------+----------+----------+----------+----------+----------+----------+
         // Public functions
